@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Package info -->
+  <PropertyGroup>
+    <PackageId>TagBites.IO.Http</PackageId>
+    <Product>TagBites.IO.Http</Product>
+    <Title>TagBites.IO.Http</Title>
+
+    <Description></Description>
+    <PackageTags>file system;io;files;file;c#;.net;http;</PackageTags>
+
+    <PackageProjectUrl>https://www.tagbites.com/io</PackageProjectUrl>
+    <PackageIconUrl>https://www.tagbites.com/io/icon.png</PackageIconUrl>
+
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/TagBites/TagBites.IO.Http.git</RepositoryUrl>
+  </PropertyGroup>
+
+  <!-- Targets -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- Build -->
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RootNamespace>TagBites.IO.Http</RootNamespace>
+    <LangVersion>8</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TagBites.IO" Version="1.0.0-beta2" />
+  </ItemGroup>
+
+</Project>
