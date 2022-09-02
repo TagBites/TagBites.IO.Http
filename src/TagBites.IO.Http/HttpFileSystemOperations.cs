@@ -37,7 +37,16 @@ namespace TagBites.IO.Http
 
             lock (Client)
             {
-                var text = Client.DownloadString(PathHelper.Combine(_address, parent, _directoryInfoFileName));
+                string text;
+                try
+                {
+                    text = Client.DownloadString(PathHelper.Combine(_address, parent, _directoryInfoFileName));
+                }
+                catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
                 if (!string.IsNullOrEmpty(text))
                     return ParseDirectoryInfo(parent, text).FirstOrDefault(x => x.FullName == fullName);
             }
