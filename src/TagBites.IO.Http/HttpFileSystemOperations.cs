@@ -4,11 +4,16 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using TagBites.IO.Operations;
+using TagBites.IO.Streams;
 
 namespace TagBites.IO.Http
 {
-    internal class HttpFileSystemOperations : IFileSystemReadOperations
+    internal class HttpFileSystemOperations :
+        IFileSystemReadOperations,
+        IFileSystemDirectReadWriteOperations,
+        IDisposable
     {
         internal const string DefaultDirectoryInfoFileName = ".dirls";
 
@@ -33,7 +38,7 @@ namespace TagBites.IO.Http
         {
             var parent = PathHelper.GetDirectoryName(fullName);
             if (string.IsNullOrEmpty(parent))
-                return new LinkInfo(fullName) { IsDirectory = true };
+                return new LinkInfo(fullName, true);
 
             lock (Client)
             {
@@ -53,12 +58,14 @@ namespace TagBites.IO.Http
 
             return null;
         }
-        public string CorrectPath(string path) => path;
 
-        public Stream ReadFile(FileLink file)
+        public void ReadFile(FileLink file, Stream stream)
         {
             lock (Client)
-                return Client.OpenRead(PathHelper.Combine(_address, file.FullName));
+            {
+                using var s = Client.OpenRead(PathHelper.Combine(_address, file.FullName))!;
+                s.CopyTo(stream);
+            }
         }
         public IList<IFileSystemStructureLinkInfo> GetLinks(DirectoryLink directory, FileSystem.ListingOptions options)
         {
@@ -81,7 +88,27 @@ namespace TagBites.IO.Http
             return null;
         }
 
-        private IEnumerable<IFileSystemStructureLinkInfo> ParseDirectoryInfo(string directoryFullName, string directoryInfoContent)
+        public FileAccess GetSupportedDirectAccess(FileLink file) => FileAccess.Read;
+        public Stream OpenFileStream(FileLink file, FileAccess access, bool overwrite)
+        {
+            if (access != FileAccess.Read)
+                throw new NotSupportedException();
+
+            Monitor.Enter(Client);
+            try
+            {
+                var stream = Client.OpenRead(PathHelper.Combine(_address, file.FullName))!;
+
+                return new NotifyOnCloseStream(stream, () => Monitor.Exit(Client));
+            }
+            catch
+            {
+                Monitor.Exit(Client);
+                throw;
+            }
+        }
+
+        private static IEnumerable<IFileSystemStructureLinkInfo> ParseDirectoryInfo(string directoryFullName, string directoryInfoContent)
         {
             var lines = directoryInfoContent.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
@@ -90,8 +117,9 @@ namespace TagBites.IO.Http
                 if (parts.Length < 7 || !string.Equals(parts[0], "D", StringComparison.OrdinalIgnoreCase) && !string.Equals(parts[0], "F", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                var info = new LinkInfo(PathHelper.Combine(directoryFullName, parts[6]));
-                info.IsDirectory = string.Equals(parts[0], "D", StringComparison.OrdinalIgnoreCase);
+                var info = new LinkInfo(
+                    PathHelper.Combine(directoryFullName, parts[6]),
+                    string.Equals(parts[0], "D", StringComparison.OrdinalIgnoreCase));
 
                 if (parts[1] != "-" && DateTime.TryParse(parts[1], out var d1))
                     info.CreationTime = d1;
@@ -106,14 +134,18 @@ namespace TagBites.IO.Http
             }
         }
 
+        public string CorrectPath(string path) => path;
+
+        public void Dispose() => Client.Dispose();
+
         private class LinkInfo : IFileLinkInfo
         {
             public string FullName { get; }
             public bool Exists => true;
-            public bool IsDirectory { get; set; }
+            public bool? IsDirectory { get; }
 
             public DateTime? CreationTime { get; set; }
-            public DateTime? LastWriteTime { get; set; }
+            public DateTime? LastWriteTime => null;
             public bool IsHidden => false;
             public bool IsReadOnly => false;
 
@@ -124,9 +156,10 @@ namespace TagBites.IO.Http
             public bool CanRead => true;
             public bool CanWrite => false;
 
-            public LinkInfo(string fullName)
+            public LinkInfo(string fullName, bool isDirectory)
             {
                 FullName = fullName;
+                IsDirectory = isDirectory;
             }
         }
     }
