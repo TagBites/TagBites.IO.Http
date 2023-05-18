@@ -15,10 +15,11 @@ namespace TagBites.IO.Http
         /// <param name="address">The Http address.</param>
         /// <param name="directoryInfoFileName">The name of the file containing directory names.</param>
         /// <param name="encoding">The encoding applied to the contents of files.</param>
+        /// <param name="timeout">The length of time, in milliseconds, before the request times out.</param>
         /// <returns>A Http file system contains the procedures that are used to perform file and directory operations.</returns>
-        public static FileSystem Create(string address, string directoryInfoFileName = null, Encoding encoding = null)
+        public static FileSystem Create(string address, string directoryInfoFileName = null, Encoding encoding = null, int? timeout = null)
         {
-            return new FileSystem(new HttpFileSystemOperations(address, directoryInfoFileName, encoding));
+            return new FileSystem(new HttpFileSystemOperations(address, directoryInfoFileName, encoding, timeout));
         }
         /// <summary>
         /// Creates a file with information about files in directory.

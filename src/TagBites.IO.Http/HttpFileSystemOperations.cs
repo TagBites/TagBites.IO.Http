@@ -22,12 +22,12 @@ namespace TagBites.IO.Http
 
         private WebClient Client { get; }
 
-        public HttpFileSystemOperations(string address, string directoryInfoFileName = null, Encoding encoding = null)
+        public HttpFileSystemOperations(string address, string directoryInfoFileName = null, Encoding encoding = null, int? timeout = null)
         {
             if (string.IsNullOrEmpty(address))
                 throw new ArgumentException("Value cannot be null or empty.", nameof(address));
 
-            Client = new TimeoutWebClient(5000);
+            Client = new TimeoutWebClient(timeout ?? 5000);
             Client.Encoding = encoding ?? Encoding.UTF8;
             _address = address;
             _directoryInfoFileName = directoryInfoFileName ?? DefaultDirectoryInfoFileName;
