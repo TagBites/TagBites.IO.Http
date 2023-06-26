@@ -19,20 +19,21 @@ namespace TagBites.IO.Http
 
         private readonly string _address;
         private readonly string _directoryInfoFileName;
+        private readonly bool _useCache;
 
         private WebClient Client { get; }
 
-        public HttpFileSystemOperations(string address, string directoryInfoFileName = null, Encoding encoding = null, int? timeout = null)
+        public HttpFileSystemOperations(string address, HttpFileSystemOptions options)
         {
             if (string.IsNullOrEmpty(address))
                 throw new ArgumentException("Value cannot be null or empty.", nameof(address));
 
-            Client = new TimeoutWebClient(timeout ?? 5000);
-            Client.Encoding = encoding ?? Encoding.UTF8;
+            Client = new TimeoutWebClient(options.Timeout ?? 5000);
+            Client.Encoding = options.Encoding ?? Encoding.UTF8;
             _address = address;
-            _directoryInfoFileName = directoryInfoFileName ?? DefaultDirectoryInfoFileName;
+            _directoryInfoFileName = options.DirectoryInfoFileName ?? DefaultDirectoryInfoFileName;
+            _useCache = options.UseCache;
         }
-
 
         public IFileSystemStructureLinkInfo GetLinkInfo(string fullName)
         {

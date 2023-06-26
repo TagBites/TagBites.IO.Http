@@ -19,8 +19,27 @@ namespace TagBites.IO.Http
         /// <returns>A Http file system contains the procedures that are used to perform file and directory operations.</returns>
         public static FileSystem Create(string address, string directoryInfoFileName = null, Encoding encoding = null, int? timeout = null)
         {
-            return new FileSystem(new HttpFileSystemOperations(address, directoryInfoFileName, encoding, timeout));
+            var options = new HttpFileSystemOptions
+            {
+                DirectoryInfoFileName = directoryInfoFileName,
+                Encoding = encoding,
+                Timeout = timeout
+            };
+
+            return new FileSystem(new HttpFileSystemOperations(address, options));
         }
+
+        /// <summary>
+        /// Creates a Http file system.
+        /// </summary>
+        /// <param name="address">The Http address.</param>
+        /// <param name="options"></param>
+        /// <returns>A Http file system contains the procedures that are used to perform file and directory operations.</returns>
+        public static FileSystem Create(string address, HttpFileSystemOptions options)
+        {
+            return new FileSystem(new HttpFileSystemOperations(address, options));
+        }
+
         /// <summary>
         /// Creates a file with information about files in directory.
         /// File line format: D/F   Length   Created    Modified    Hash Algorithm    Hash    Name
