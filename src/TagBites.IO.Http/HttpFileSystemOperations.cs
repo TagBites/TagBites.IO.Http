@@ -35,6 +35,7 @@ namespace TagBites.IO.Http
             _useCache = options.UseCache;
         }
 
+
         public IFileSystemStructureLinkInfo GetLinkInfo(string fullName)
         {
             var parent = PathHelper.GetDirectoryName(fullName);
@@ -46,7 +47,7 @@ namespace TagBites.IO.Http
                 string text;
                 try
                 {
-                    text = Client.DownloadString(PathHelper.Combine(_address, parent, _directoryInfoFileName));
+                    text = Client.DownloadString(PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix());
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -64,7 +65,7 @@ namespace TagBites.IO.Http
         {
             lock (Client)
             {
-                using var s = Client.OpenRead(PathHelper.Combine(_address, file.FullName))!;
+                using var s = Client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
                 s.CopyTo(stream);
             }
         }
@@ -75,7 +76,7 @@ namespace TagBites.IO.Http
                 string text;
                 try
                 {
-                    text = Client.DownloadString(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName));
+                    text = Client.DownloadString(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix());
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -98,7 +99,7 @@ namespace TagBites.IO.Http
             Monitor.Enter(Client);
             try
             {
-                var stream = Client.OpenRead(PathHelper.Combine(_address, file.FullName))!;
+                var stream = Client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
 
                 return new NotifyOnCloseStream(stream, () => Monitor.Exit(Client));
             }
@@ -136,6 +137,13 @@ namespace TagBites.IO.Http
         }
 
         public string CorrectPath(string path) => path;
+
+        private string GetRandomSuffix()
+        {
+            return _useCache
+                ? "?r=" + Guid.NewGuid().ToString("N")
+                : null;
+        }
 
         public void Dispose() => Client.Dispose();
 
