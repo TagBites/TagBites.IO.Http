@@ -41,6 +41,17 @@ namespace TagBites.IO.Http
         }
 
         /// <summary>
+        /// Creates a Http file system with write file system.
+        /// </summary>
+        /// <param name="writeFileSystem">A file system with writing methods.</param>
+        /// <returns></returns>
+        public static FileSystem CreateBuilder(FileSystem writeFileSystem)
+        {
+            writeFileSystem = new FileSystem(new HttpFileSystemWriteOperations(writeFileSystem));
+            return writeFileSystem;
+        }
+
+        /// <summary>
         /// Creates a file with information about files in directory.
         /// File line format: D/F   Length   Created    Modified    Hash Algorithm    Hash    Name
         /// </summary>
