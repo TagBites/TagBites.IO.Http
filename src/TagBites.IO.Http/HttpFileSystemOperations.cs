@@ -1,18 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
+using System.Threading.Tasks;
 using TagBites.IO.Operations;
 using TagBites.IO.Streams;
+using TagBites.Utils;
 
 namespace TagBites.IO.Http
 {
     internal class HttpFileSystemOperations :
         IFileSystemReadOperations,
+        IFileSystemAsyncReadOperations,
         IFileSystemDirectReadWriteOperations,
+        IFileSystemAsyncDirectReadWriteOperations,
         IDisposable
     {
         internal const string DefaultDirectoryInfoFileName = ".dirls";
@@ -20,6 +24,7 @@ namespace TagBites.IO.Http
         private readonly string _address;
         private readonly string _directoryInfoFileName;
         private readonly bool _useCache;
+        private readonly AsyncLock _locker = new();
 
         private WebClient Client { get; }
 
@@ -42,14 +47,50 @@ namespace TagBites.IO.Http
             if (string.IsNullOrEmpty(parent))
                 return new LinkInfo(fullName, true);
 
-            lock (Client)
+            using (_locker.Lock())
             {
                 string text;
                 try
                 {
-                    text = Client.DownloadString(PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix());
+                    var address = PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix();
+                    Debug.WriteLine($"{GetType().Name}: DownloadString - {address}");
+                    Debug.WriteLine($" - for: {fullName}");
+                    text = Client.DownloadString(address);
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
+                if (!string.IsNullOrEmpty(text))
+                {
+                    var infos = ParseDirectoryInfo(parent, text);
+                    var info = infos.FirstOrDefault(x => x.FullName == fullName);
+                    if (info == null)
+                    {
+
+                    }
+                    return info;
+                }
+            }
+
+            return null;
+        }
+        public async Task<IFileSystemStructureLinkInfo> GetLinkInfoAsync(string fullName)
+        {
+            var parent = PathHelper.GetDirectoryName(fullName);
+            if (string.IsNullOrEmpty(parent))
+                return new LinkInfo(fullName, true);
+
+            using (await _locker.LockAsync().ConfigureAwait(false))
+            {
+                string text;
+                try
+                {
+                    text = await Client.DownloadStringTaskAsync(PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+                }
+                catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode ==
+                                                        HttpStatusCode.NotFound)
                 {
                     return null;
                 }
@@ -63,20 +104,49 @@ namespace TagBites.IO.Http
 
         public void ReadFile(FileLink file, Stream stream)
         {
-            lock (Client)
+            using (_locker.Lock())
             {
                 using var s = Client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
                 s.CopyTo(stream);
             }
         }
+        public async Task ReadFileAsync(FileLink file, Stream stream)
+        {
+            using (await _locker.LockAsync().ConfigureAwait(false))
+            {
+                using var s = await Client.OpenReadTaskAsync(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!.ConfigureAwait(false);
+                await s.CopyToAsync(stream).ConfigureAwait(false);
+            }
+        }
+
         public IList<IFileSystemStructureLinkInfo> GetLinks(DirectoryLink directory, FileSystem.ListingOptions options)
         {
-            lock (Client)
+            using (_locker.Lock())
             {
                 string text;
                 try
                 {
                     text = Client.DownloadString(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix());
+                }
+                catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
+                if (!string.IsNullOrEmpty(text))
+                    return ParseDirectoryInfo(directory.FullName, text).ToList();
+            }
+
+            return null;
+        }
+        public async Task<IList<IFileSystemStructureLinkInfo>> GetLinksAsync(DirectoryLink directory, FileSystem.ListingOptions options)
+        {
+            using (await _locker.LockAsync().ConfigureAwait(false))
+            {
+                string text;
+                try
+                {
+                    text = await Client.DownloadStringTaskAsync(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -96,16 +166,36 @@ namespace TagBites.IO.Http
             if (access != FileAccess.Read)
                 throw new NotSupportedException();
 
-            Monitor.Enter(Client);
+            var locker = _locker.Lock();
             try
             {
                 var stream = Client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
 
-                return new NotifyOnCloseStream(stream, () => Monitor.Exit(Client));
+                // ReSharper disable once AccessToDisposedClosure
+                return new NotifyOnCloseStream(stream, locker.Dispose);
             }
             catch
             {
-                Monitor.Exit(Client);
+                locker.Dispose();
+                throw;
+            }
+        }
+        public async Task<Stream> OpenFileStreamAsync(FileLink file, FileAccess access, bool overwrite)
+        {
+            if (access != FileAccess.Read)
+                throw new NotSupportedException();
+
+            var locker = await _locker.LockAsync().ConfigureAwait(false);
+            try
+            {
+                var stream = await Client.OpenReadTaskAsync(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!.ConfigureAwait(false);
+
+                // ReSharper disable once AccessToDisposedClosure
+                return new NotifyOnCloseStream(stream, locker.Dispose);
+            }
+            catch
+            {
+                locker.Dispose();
                 throw;
             }
         }

@@ -46,7 +46,8 @@ namespace TagBites.IO.Http
         /// </summary>
         /// <param name="directory">The link to the directory.</param>
         /// <param name="directoryInfoFileName">The name of file with directory information.</param>
-        public static void CreateDirectoryInfo(DirectoryLink directory, string directoryInfoFileName = null)
+        /// <param name="recursive">Recursive.</param>
+        public static void CreateDirectoryInfo(DirectoryLink directory, string directoryInfoFileName = null, bool recursive = true)
         {
             const string empty = "-";
             directoryInfoFileName ??= HttpFileSystemOperations.DefaultDirectoryInfoFileName;
@@ -60,11 +61,12 @@ namespace TagBites.IO.Http
 
                 var sb = new StringBuilder();
 
+
                 foreach (var link in directory.GetLinks())
                 {
                     if (link.Name == directoryInfoFileName)
                         continue;
-                    if (link.Type == FileSystemLinkType.Directory)
+                    if (link.Type == FileSystemLinkType.Directory && recursive)
                         stack.Push((DirectoryLink)link);
 
                     var file = link as IFileResourceLink;
@@ -84,4 +86,6 @@ namespace TagBites.IO.Http
             }
         }
     }
+
+
 }
