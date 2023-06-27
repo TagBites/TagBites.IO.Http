@@ -24,8 +24,8 @@ public class HttpFileSystemOptions
     public int? Timeout { get; set; }
 
     /// <summary>
-    /// Determines whether the http file system uses cache
+    /// Determines whether the http file system does not use cache
     /// <returns><see langword="true" /> if http file system uses cache; otherwise, <see langword="false" />.</returns>
     /// </summary>
-    public bool UseCache { get; set; } = true;
+    public bool PreventCache { get; set; } = false;
 }

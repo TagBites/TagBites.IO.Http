@@ -23,7 +23,7 @@ namespace TagBites.IO.Http
 
         private readonly string _address;
         private readonly string _directoryInfoFileName;
-        private readonly bool _useCache;
+        private readonly bool _preventCache;
         private readonly AsyncLock _locker = new();
 
         private WebClient Client { get; }
@@ -37,7 +37,7 @@ namespace TagBites.IO.Http
             Client.Encoding = options.Encoding ?? Encoding.UTF8;
             _address = address;
             _directoryInfoFileName = options.DirectoryInfoFileName ?? DefaultDirectoryInfoFileName;
-            _useCache = options.UseCache;
+            _preventCache = options.PreventCache;
         }
 
 
@@ -230,7 +230,7 @@ namespace TagBites.IO.Http
 
         private string GetRandomSuffix()
         {
-            return _useCache
+            return _preventCache
                 ? "?r=" + Guid.NewGuid().ToString("N")
                 : null;
         }
