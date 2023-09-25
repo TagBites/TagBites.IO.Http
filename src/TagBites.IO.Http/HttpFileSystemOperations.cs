@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using TagBites.IO.Operations;
@@ -16,28 +16,27 @@ namespace TagBites.IO.Http
         IFileSystemReadOperations,
         IFileSystemAsyncReadOperations,
         IFileSystemDirectReadWriteOperations,
-        IFileSystemAsyncDirectReadWriteOperations,
-        IDisposable
+        IFileSystemAsyncDirectReadWriteOperations
     {
         internal const string DefaultDirectoryInfoFileName = ".dirls";
 
         private readonly string _address;
         private readonly string _directoryInfoFileName;
         private readonly bool _preventCache;
+        private readonly int _timeout;
+        private readonly Encoding _encoding;
         private readonly AsyncLock _locker = new();
-
-        private WebClient Client { get; }
 
         public HttpFileSystemOperations(string address, HttpFileSystemOptions options)
         {
             if (string.IsNullOrEmpty(address))
                 throw new ArgumentException("Value cannot be null or empty.", nameof(address));
 
-            Client = new TimeoutWebClient(options.Timeout ?? 5000);
-            Client.Encoding = options.Encoding ?? Encoding.UTF8;
             _address = address;
             _directoryInfoFileName = options.DirectoryInfoFileName ?? DefaultDirectoryInfoFileName;
             _preventCache = options.PreventCache;
+            _timeout = options.Timeout ?? 5000;
+            _encoding = options.Encoding ?? Encoding.UTF8;
         }
 
 
@@ -53,9 +52,8 @@ namespace TagBites.IO.Http
                 try
                 {
                     var address = PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix();
-                    Debug.WriteLine($"{GetType().Name}: DownloadString - {address}");
-                    Debug.WriteLine($" - for: {fullName}");
-                    text = Client.DownloadString(address);
+                    using var client = CreateWebClient();
+                    text = client.DownloadString(address);
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -87,7 +85,8 @@ namespace TagBites.IO.Http
                 string text;
                 try
                 {
-                    text = await Client.DownloadStringTaskAsync(PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+                    using var client = CreateHttpClient();
+                    text = await client.GetStringAsync(PathHelper.Combine(_address, parent, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode ==
                                                         HttpStatusCode.NotFound)
@@ -106,7 +105,8 @@ namespace TagBites.IO.Http
         {
             using (_locker.Lock())
             {
-                using var s = Client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
+                using var client = CreateWebClient();
+                using var s = client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
                 s.CopyTo(stream);
             }
         }
@@ -114,7 +114,8 @@ namespace TagBites.IO.Http
         {
             using (await _locker.LockAsync().ConfigureAwait(false))
             {
-                using var s = await Client.OpenReadTaskAsync(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!.ConfigureAwait(false);
+                using var client = CreateHttpClient();
+                using var s = await client.GetStreamAsync(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!.ConfigureAwait(false);
                 await s.CopyToAsync(stream).ConfigureAwait(false);
             }
         }
@@ -126,7 +127,8 @@ namespace TagBites.IO.Http
                 string text;
                 try
                 {
-                    text = Client.DownloadString(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix());
+                    using var client = CreateWebClient();
+                    text = client.DownloadString(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix());
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -146,7 +148,8 @@ namespace TagBites.IO.Http
                 string text;
                 try
                 {
-                    text = await Client.DownloadStringTaskAsync(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+                    using var client = CreateHttpClient();
+                    text = await client.GetStringAsync(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -169,7 +172,8 @@ namespace TagBites.IO.Http
             var locker = _locker.Lock();
             try
             {
-                var stream = Client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
+                using var client = CreateWebClient();
+                var stream = client.OpenRead(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!;
 
                 // ReSharper disable once AccessToDisposedClosure
                 return new NotifyOnCloseStream(stream, locker.Dispose);
@@ -188,7 +192,8 @@ namespace TagBites.IO.Http
             var locker = await _locker.LockAsync().ConfigureAwait(false);
             try
             {
-                var stream = await Client.OpenReadTaskAsync(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!.ConfigureAwait(false);
+                using var client = CreateHttpClient();
+                var stream = await client.GetStreamAsync(PathHelper.Combine(_address, file.FullName) + GetRandomSuffix())!.ConfigureAwait(false);
 
                 // ReSharper disable once AccessToDisposedClosure
                 return new NotifyOnCloseStream(stream, locker.Dispose);
@@ -235,7 +240,15 @@ namespace TagBites.IO.Http
                 : null;
         }
 
-        public void Dispose() => Client.Dispose();
+        private WebClient CreateWebClient()
+        {
+            return new TimeoutWebClient(_timeout) { Encoding = _encoding };
+        }
+        private HttpClient CreateHttpClient()
+        {
+            return new HttpClient { Timeout = TimeSpan.FromMilliseconds(_timeout) };
+        }
+
 
         private class LinkInfo : IFileLinkInfo
         {
