@@ -231,8 +231,6 @@ namespace TagBites.IO.Http
             }
         }
 
-        public string CorrectPath(string path) => path;
-
         private string GetRandomSuffix()
         {
             return _preventCache
