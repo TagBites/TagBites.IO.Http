@@ -132,14 +132,14 @@ namespace TagBites.IO.Http
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
-                    return null;
+                    return Array.Empty<IFileSystemStructureLinkInfo>();
                 }
 
                 if (!string.IsNullOrEmpty(text))
                     return ParseDirectoryInfo(directory.FullName, text).ToList();
             }
 
-            return null;
+            return Array.Empty<IFileSystemStructureLinkInfo>();
         }
         public async Task<IList<IFileSystemStructureLinkInfo>> GetLinksAsync(DirectoryLink directory, FileSystem.ListingOptions options)
         {
@@ -153,14 +153,14 @@ namespace TagBites.IO.Http
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
-                    return null;
+                    return Array.Empty<IFileSystemStructureLinkInfo>();
                 }
 
                 if (!string.IsNullOrEmpty(text))
                     return ParseDirectoryInfo(directory.FullName, text).ToList();
             }
 
-            return null;
+            return Array.Empty<IFileSystemStructureLinkInfo>();
         }
 
         public FileAccess GetSupportedDirectAccess(FileLink file) => FileAccess.Read;
