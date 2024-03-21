@@ -96,6 +96,52 @@ namespace TagBites.IO.Http
                 directory.GetFile(directoryInfoFileName).WriteAllText(sb.ToString());
             }
         }
+        /// <summary>
+        /// Creates a file with information about recursive files in directory.
+        /// </summary>
+        /// <param name="directory">The link to the directory.</param>
+        /// <param name="ignoredPaths">The set of ignored paths.</param>
+        /// <param name="directoryInfoFileName">The name of file with directory information.</param>
+        public static void CreateRecursiveDirectoryInfo(DirectoryLink directory, IEnumerable<string>? ignoredPaths = null, string? directoryInfoFileName = null)
+        {
+            const string empty = "-";
+            directoryInfoFileName ??= HttpFileSystemOperations.DefaultRecursiveDirectoryInfoFileName;
+            var ignoredPathsSet = ignoredPaths != null ? new HashSet<string>(ignoredPaths) : null;
+
+            var stack = new Stack<DirectoryLink>();
+            stack.Push(directory);
+
+            var sb = new StringBuilder();
+            while (stack.Count > 0)
+            {
+                var currentDirectory = stack.Pop();
+                foreach (var link in currentDirectory.GetLinks())
+                {
+                    if (link.Name == directoryInfoFileName || link.Name == HttpFileSystemOperations.DefaultDirectoryInfoFileName)
+                        continue;
+
+                    if (ignoredPathsSet?.Contains(link.FullName) == true)
+                        continue;
+
+                    if (link.Type == FileSystemLinkType.Directory)
+                        stack.Push((DirectoryLink)link);
+
+                    var file = link as IFileResourceLink;
+                    var hash = file?.Hash ?? FileHash.Empty;
+
+                    sb.AppendFormat("{0}\t{1:u}\t{2:u}\t{3}\t{4}\t{5}\t{6}\n",
+                        link.Type == FileSystemLinkType.Directory ? 'D' : 'F',
+                        link.CreationTime ?? DateTime.MinValue,
+                        link.ModifyTime ?? DateTime.MinValue,
+                        file?.Length.ToString() ?? empty,
+                        hash.IsEmpty ? "-" : hash.Algorithm.ToString(),
+                        hash.IsEmpty ? "-" : hash.Value,
+                        link.FullName);
+                }
+            }
+
+            directory.GetFile(directoryInfoFileName).WriteAllText(sb.ToString());
+        }
     }
 
 

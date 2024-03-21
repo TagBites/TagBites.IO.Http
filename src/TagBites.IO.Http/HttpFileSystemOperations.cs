@@ -19,6 +19,7 @@ namespace TagBites.IO.Http
         IFileSystemAsyncDirectReadWriteOperations
     {
         internal const string DefaultDirectoryInfoFileName = ".dirls";
+        internal const string DefaultRecursiveDirectoryInfoFileName = ".dirrls";
 
         private readonly string _address;
         private readonly string _directoryInfoFileName;
@@ -128,7 +129,13 @@ namespace TagBites.IO.Http
                 try
                 {
                     using var client = CreateWebClient();
-                    text = client.DownloadString(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix());
+
+                    options.RecursiveHandled = options.Recursive && directory.FullName == "/";
+                    var infoFileName = options.RecursiveHandled
+                        ? DefaultRecursiveDirectoryInfoFileName
+                        : DefaultDirectoryInfoFileName;
+
+                    text = client.DownloadString(PathHelper.Combine(_address, directory.FullName, infoFileName) + GetRandomSuffix());
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -136,7 +143,7 @@ namespace TagBites.IO.Http
                 }
 
                 if (!string.IsNullOrEmpty(text))
-                    return ParseDirectoryInfo(directory.FullName, text).ToList();
+                    return ParseDirectoryInfo(directory.FullName, text, options.RecursiveHandled).ToList();
             }
 
             return Array.Empty<IFileSystemStructureLinkInfo>();
@@ -149,7 +156,13 @@ namespace TagBites.IO.Http
                 try
                 {
                     using var client = CreateHttpClient();
-                    text = await client.GetStringAsync(PathHelper.Combine(_address, directory.FullName, _directoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+
+                    options.RecursiveHandled = options.Recursive && directory.FullName == "/";
+                    var infoFileName = options.RecursiveHandled
+                        ? DefaultRecursiveDirectoryInfoFileName
+                        : DefaultDirectoryInfoFileName;
+
+                    text = await client.GetStringAsync(PathHelper.Combine(_address, directory.FullName, infoFileName) + GetRandomSuffix()).ConfigureAwait(false);
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -157,7 +170,7 @@ namespace TagBites.IO.Http
                 }
 
                 if (!string.IsNullOrEmpty(text))
-                    return ParseDirectoryInfo(directory.FullName, text).ToList();
+                    return ParseDirectoryInfo(directory.FullName, text, options.RecursiveHandled).ToList();
             }
 
             return Array.Empty<IFileSystemStructureLinkInfo>();
@@ -205,7 +218,7 @@ namespace TagBites.IO.Http
             }
         }
 
-        private static IEnumerable<IFileSystemStructureLinkInfo> ParseDirectoryInfo(string directoryFullName, string directoryInfoContent)
+        private static IEnumerable<IFileSystemStructureLinkInfo> ParseDirectoryInfo(string directoryFullName, string directoryInfoContent, bool recursive = false)
         {
             var lines = directoryInfoContent.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
@@ -215,7 +228,7 @@ namespace TagBites.IO.Http
                     continue;
 
                 var info = new LinkInfo(
-                    PathHelper.Combine(directoryFullName, parts[6]),
+                    recursive ? parts[6] : PathHelper.Combine(directoryFullName, parts[6]),
                     string.Equals(parts[0], "D", StringComparison.OrdinalIgnoreCase));
 
                 if (parts[1] != "-" && DateTime.TryParse(parts[1], out var d1))
