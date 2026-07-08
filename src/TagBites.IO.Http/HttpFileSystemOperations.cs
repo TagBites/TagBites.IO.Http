@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using TagBites.IO.Operations;
 using TagBites.IO.Streams;
 using TagBites.Utils;
@@ -29,7 +28,7 @@ namespace TagBites.IO.Http
         private readonly Encoding _encoding;
         private readonly AsyncLock _locker = new();
 
-        public string Kind => "http";
+        public string Kind => KnowFileSystemKind.Http;
         public string Name => _address;
 
         public HttpFileSystemOperations(string address, HttpFileSystemOptions options)
