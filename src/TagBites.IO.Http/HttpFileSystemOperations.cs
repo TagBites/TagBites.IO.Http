@@ -139,7 +139,18 @@ namespace TagBites.IO.Http
                         ? DefaultRecursiveDirectoryInfoFileName
                         : DefaultDirectoryInfoFileName;
 
-                    text = client.DownloadString(PathHelper.Combine(_address, directory.FullName, infoFileName) + GetRandomSuffix());
+                    try
+                    {
+                        text = client.DownloadString(PathHelper.Combine(_address, directory.FullName, infoFileName) + GetRandomSuffix());
+                    }
+                    catch
+                    {
+                        if (!options.RecursiveHandled)
+                            return Array.Empty<IFileSystemStructureLinkInfo>();
+
+                        options.RecursiveHandled = false;
+                        text = client.DownloadString(PathHelper.Combine(_address, directory.FullName, DefaultDirectoryInfoFileName) + GetRandomSuffix());
+                    }
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -159,14 +170,25 @@ namespace TagBites.IO.Http
                 string text;
                 try
                 {
-                    using var client = CreateHttpClient();
-
                     options.RecursiveHandled = options.Recursive && directory.FullName == "/";
                     var infoFileName = options.RecursiveHandled
                         ? DefaultRecursiveDirectoryInfoFileName
                         : DefaultDirectoryInfoFileName;
 
-                    text = await client.GetStringAsync(PathHelper.Combine(_address, directory.FullName, infoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+                    try
+                    {
+                        using var client = CreateHttpClient();
+                        text = await client.GetStringAsync(PathHelper.Combine(_address, directory.FullName, infoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+                    }
+                    catch
+                    {
+                        if (!options.RecursiveHandled)
+                            return Array.Empty<IFileSystemStructureLinkInfo>();
+
+                        using var client = CreateHttpClient();
+                        options.RecursiveHandled = false;
+                        text = await client.GetStringAsync(PathHelper.Combine(_address, directory.FullName, DefaultDirectoryInfoFileName) + GetRandomSuffix()).ConfigureAwait(false);
+                    }
                 }
                 catch (System.Net.WebException e) when ((e.Response as HttpWebResponse)?.StatusCode == HttpStatusCode.NotFound)
                 {

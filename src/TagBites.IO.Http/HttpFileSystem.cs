@@ -143,6 +143,4 @@ namespace TagBites.IO.Http
             directory.GetFile(directoryInfoFileName).WriteAllText(sb.ToString());
         }
     }
-
-
 }
