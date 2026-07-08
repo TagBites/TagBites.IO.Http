@@ -6,7 +6,7 @@
     <Product>TagBites.IO.Http</Product>
     <Title>TagBites.IO.Http</Title>
 
-    <Description></Description>
+    <Description>Read-only HTTP file system support for TagBites.IO. Browse and read files published over plain HTTP through the same FileSystem API used for local disk and other storages.</Description>
     <PackageTags>file;files;system;filesystem;sync;.net;C#;http;</PackageTags>
 
     <PackageProjectUrl>https://www.tagbites.com/io</PackageProjectUrl>
@@ -42,7 +42,7 @@
     </When>
     <Otherwise>
       <ItemGroup>
-        <PackageReference Include="TagBites.IO" Version="1.3.8" />
+        <PackageReference Include="TagBites.IO" Version="1.3.13" />
       </ItemGroup>
     </Otherwise>
   </Choose>
