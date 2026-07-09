@@ -1,20 +1,10 @@
 ﻿#nullable enable
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
 using TagBites.IO.Operations;
 
 namespace TagBites.IO.Http;
 
-internal class HttpFileSystemWriteOperations : ProxyFileSystemOperations
+internal class HttpFileSystemWriteOperations(FileSystem write) : ProxyFileSystemOperations(write)
 {
-    private readonly Dictionary<DirectoryLink, IList<FileSystemStructureLink>> _map = new();
-
-    public HttpFileSystemWriteOperations(FileSystem write)
-        : base(write)
-    { }
-
-
     public override IFileLinkInfo WriteFile(FileLink file, Stream stream, bool overwrite)
     {
         var info = base.WriteFile(file, stream, overwrite);
