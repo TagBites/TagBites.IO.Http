@@ -39,10 +39,10 @@ internal class HttpFileSystemOperations :
     }
 
 
-    public IFileSystemStructureLinkInfo GetLinkInfo(string fullName)
+    public IFileSystemStructureLinkInfo? GetLinkInfo(string fullName)
     {
         var parent = PathHelper.GetDirectoryName(fullName);
-        if (string.IsNullOrEmpty(parent))
+        if (parent == null || parent.Length == 0)
             return new LinkInfo(fullName, true);
 
         using (_locker.Lock())
@@ -73,10 +73,10 @@ internal class HttpFileSystemOperations :
 
         return null;
     }
-    public async Task<IFileSystemStructureLinkInfo> GetLinkInfoAsync(string fullName)
+    public async Task<IFileSystemStructureLinkInfo?> GetLinkInfoAsync(string fullName)
     {
         var parent = PathHelper.GetDirectoryName(fullName);
-        if (string.IsNullOrEmpty(parent))
+        if (parent == null || parent.Length == 0)
             return new LinkInfo(fullName, true);
 
         using (await _locker.LockAsync().ConfigureAwait(false))
@@ -264,7 +264,7 @@ internal class HttpFileSystemOperations :
         }
     }
 
-    private string GetRandomSuffix()
+    private string? GetRandomSuffix()
     {
         return _preventCache
             ? "?r=" + Guid.NewGuid().ToString("N")

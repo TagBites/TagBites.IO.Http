@@ -1,5 +1,4 @@
-﻿#nullable enable
-using TagBites.IO.Operations;
+﻿using TagBites.IO.Operations;
 
 namespace TagBites.IO.Http;
 

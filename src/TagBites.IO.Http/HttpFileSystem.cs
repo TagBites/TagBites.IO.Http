@@ -15,7 +15,7 @@ public static class HttpFileSystem
     /// <param name="encoding">The encoding applied to the contents of files.</param>
     /// <param name="timeout">The length of time, in milliseconds, before the request times out.</param>
     /// <returns>A Http file system contains the procedures that are used to perform file and directory operations.</returns>
-    public static FileSystem Create(string address, string directoryInfoFileName = null, Encoding encoding = null, int? timeout = null)
+    public static FileSystem Create(string address, string? directoryInfoFileName = null, Encoding? encoding = null, int? timeout = null)
     {
         var options = new HttpFileSystemOptions
         {
@@ -56,7 +56,7 @@ public static class HttpFileSystem
     /// <param name="directory">The link to the directory.</param>
     /// <param name="directoryInfoFileName">The name of file with directory information.</param>
     /// <param name="recursive">Recursive.</param>
-    public static void CreateDirectoryInfo(DirectoryLink directory, string directoryInfoFileName = null, bool recursive = true)
+    public static void CreateDirectoryInfo(DirectoryLink directory, string? directoryInfoFileName = null, bool recursive = true)
     {
         const string empty = "-";
         directoryInfoFileName ??= HttpFileSystemOperations.DefaultDirectoryInfoFileName;

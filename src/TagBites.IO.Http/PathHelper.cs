@@ -2,13 +2,13 @@ namespace TagBites.IO.Http;
 
 internal static class PathHelper
 {
-    public static string Combine(string path1, string path2, string path3)
+    public static string Combine(string path1, string? path2, string path3)
     {
         return Combine(Combine(path1, path2), path3);
     }
-    public static string Combine(string path1, string path2)
+    public static string Combine(string path1, string? path2)
     {
-        if (string.IsNullOrEmpty(path2))
+        if (path2 == null || path2.Length == 0)
             return path1;
 
         if (string.IsNullOrEmpty(path1))
@@ -22,7 +22,7 @@ internal static class PathHelper
         return path1 + path2;
     }
 
-    public static string GetDirectoryName(string path)
+    public static string? GetDirectoryName(string? path)
     {
         if (path == null)
             return null;
@@ -35,7 +35,7 @@ internal static class PathHelper
             ? path[0].ToString()
             : path.Substring(0, index);
     }
-    private static int GetLastDirectorySeparator(string path)
+    private static int GetLastDirectorySeparator(string? path)
     {
         if (path != null)
         {
