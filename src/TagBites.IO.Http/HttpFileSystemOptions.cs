@@ -3,7 +3,7 @@
 namespace TagBites.IO.Http;
 
 /// <summary>
-/// Provides a set of options to http file system.
+/// Provides a set of options for the http file system.
 /// </summary>
 public class HttpFileSystemOptions
 {
@@ -23,8 +23,9 @@ public class HttpFileSystemOptions
     public int? Timeout { get; set; }
 
     /// <summary>
-    /// Determines whether the http file system does not use cache
-    /// <returns><see langword="true" /> if http file system uses cache; otherwise, <see langword="false" />.</returns>
+    /// Determines whether the http file system prevents caching of requests by appending
+    /// a cache-busting query string to each request. <see langword="true" /> to prevent
+    /// caching; otherwise, <see langword="false" />.
     /// </summary>
     public bool PreventCache { get; set; } = false;
 }

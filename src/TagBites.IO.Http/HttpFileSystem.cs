@@ -31,7 +31,7 @@ public static class HttpFileSystem
     /// Creates a Http file system.
     /// </summary>
     /// <param name="address">The Http address.</param>
-    /// <param name="options"></param>
+    /// <param name="options">The Http file system options.</param>
     /// <returns>A Http file system contains the procedures that are used to perform file and directory operations.</returns>
     public static FileSystem Create(string address, HttpFileSystemOptions options)
     {
@@ -39,10 +39,11 @@ public static class HttpFileSystem
     }
 
     /// <summary>
-    /// Creates a Http file system with write file system.
+    /// Wraps a writable file system so that writing or deleting a file also regenerates the
+    /// directory info file(s) that <see cref="Create(string, HttpFileSystemOptions)"/> reads.
     /// </summary>
     /// <param name="writeFileSystem">A file system with writing methods.</param>
-    /// <returns></returns>
+    /// <returns>A file system that keeps directory info files in sync as files are written, moved, or deleted.</returns>
     public static FileSystem CreateBuilder(FileSystem writeFileSystem)
     {
         writeFileSystem = new FileSystem(new HttpFileSystemWriteOperations(writeFileSystem));
