@@ -254,7 +254,7 @@ internal class HttpFileSystemOperations :
             if (parts[1] != "-" && DateTime.TryParse(parts[1], out var d1))
                 info.CreationTime = d1;
             if (parts[2] != "-" && DateTime.TryParse(parts[2], out var d2))
-                info.CreationTime = d2;
+                info.LastWriteTime = d2;
             if (parts[3] != "-" && long.TryParse(parts[3], out var length))
                 info.Length = length;
             if (parts[4] != "-" && Enum.TryParse<FileHashAlgorithm>(parts[4], out var ha) && ha != FileHashAlgorithm.None)
@@ -288,7 +288,7 @@ internal class HttpFileSystemOperations :
         public bool? IsDirectory { get; } = isDirectory;
 
         public DateTime? CreationTime { get; set; }
-        public DateTime? LastWriteTime => null;
+        public DateTime? LastWriteTime { get; set; }
         public bool IsHidden => false;
         public bool IsReadOnly => false;
 
